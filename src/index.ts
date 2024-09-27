@@ -41,6 +41,7 @@ export type FlatRoutesOptions = {
   paramPrefixChar?: string
   ignoredRouteFiles?: string[]
   routeRegex?: RegExp
+  getRouteId?: (filePath: string) => string | undefined
 }
 
 export type DefineRoutesFunction = (
@@ -182,6 +183,7 @@ function _flatRoutes(
 
         defineRoute(routePath, routeMap.get(childRoute.id!)!.file, {
           index: true,
+          id: childRoute.id
         })
       } else {
         defineRoute(routePath, routeMap.get(childRoute.id!)!.file, () => {
@@ -239,7 +241,7 @@ export function getRouteInfo(
   )
   let routePath = createRoutePath(routeSegments, index, options)
   let routeInfo = {
-    id: routeId,
+    id: options.getRouteId?.(filePath) ?? routeId,
     path: routePath!,
     file: filePath,
     name: routeSegments.join('/'),
@@ -458,4 +460,14 @@ export function normalizeSlashes(file: string) {
 
 function stripFileExtension(file: string) {
   return file.replace(/\.[a-z0-9]+$/i, '')
+}
+
+export function getRouteId(filePath: string, options?: { exportVariableName?: string, readFile?: (path: string) => string }) {
+  const exportVariableName = options?.exportVariableName ?? 'routeId'
+  const readFile = options?.readFile ?? ((path) => {
+    return fs.readFileSync(path, 'utf-8')
+  })
+  const code = readFile(filePath)
+  const routeIdRegex = new RegExp(`export\\s+const\\s+${exportVariableName}\\s+?=(\\s+)?('|"|\`)(?<routeId>(\\w)+)('|"|\`)`)
+  return code.match(routeIdRegex)?.groups?.routeId
 }

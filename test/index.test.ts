@@ -1,6 +1,6 @@
 import { defineRoutes } from '@remix-run/dev/dist/config/routes'
 import type { RouteManifest } from '../src/index'
-import flatRoutes from '../src/index'
+import flatRoutes, { getRouteId } from '../src/index'
 
 describe('define routes', () => {
   it('should define routes for flat-files', () => {
@@ -309,6 +309,26 @@ describe('use optional segments', () => {
       visitFiles: visitFilesFromArray(files),
     })
     expect(routes['routes/parent.($child)']!.path!).toBe('parent/:child?')
+  })
+})
+
+describe('use optional getRouteId', () => {
+  it('should support routeId export in page component', () => {
+    const files = ['index.tsx']
+    const routes = flatRoutes('routes', defineRoutes, {
+      visitFiles: visitFilesFromArray(files),
+      getRouteId(filePath) {
+        return getRouteId(filePath, { exportVariableName: 'routeId', readFile(path) {
+          return `
+export const routeId = 'HomePage'
+export default function Page() {
+  return <div>HomePage</div>
+} 
+`
+        }})
+      },
+    })
+    expect(routes['HomePage']!.id!).toBe('HomePage')
   })
 })
 
